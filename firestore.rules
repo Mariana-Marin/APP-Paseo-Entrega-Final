@@ -1,0 +1,39 @@
+rules_version = '2';
+
+// ---------------------------------------------------------------------------
+// Reglas de seguridad de Cloud Firestore para Paseo de San Francisco.
+//
+// El frontend solo LEE de Firestore como respaldo (cuando el backend está
+// apagado). Todas las ESCRITURAS pasan por el backend Spring Boot, que usa el
+// Admin SDK y omite estas reglas. Por eso:
+//   - Lectura pública de espacios y reservas (datos no sensibles).
+//   - Lectura de usuarios permitida pero el backend/respaldo nunca expone la
+//     contraseña; aun así, bloqueamos escritura desde el cliente.
+//   - Escritura denegada a clientes: solo el Admin SDK (backend) escribe.
+//
+// Ajusta estas reglas si más adelante agregas autenticación de Firebase.
+// ---------------------------------------------------------------------------
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /espacios/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /reservas/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /usuarios/{id} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Todo lo demás, denegado por defecto.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

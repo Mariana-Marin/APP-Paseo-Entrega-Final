@@ -1,0 +1,47 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.0.8'
+	id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '1.0.0'
+description = 'Paseo API - Reservas de zonas comunes de la unidad Paseo de San Francisco'
+
+java {
+	// Se compila para Java 17 con cualquier JDK 17+ instalado (17, 21, 24...)
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	// API REST + validaciones de los datos que llegan desde el front
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// Base de datos: Cloud Firestore (Firebase) mediante el Firebase Admin SDK
+	implementation 'com.google.firebase:firebase-admin:9.11.0'
+
+	// Hash seguro de contraseñas (BCrypt) sin activar todo Spring Security
+	implementation 'org.springframework.security:spring-security-crypto'
+
+	// Documentación interactiva de la API: http://localhost:8080/swagger-ui.html
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.encoding = 'UTF-8'
+	options.release = 17
+	options.compilerArgs << '-parameters'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

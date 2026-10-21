@@ -1,0 +1,35 @@
+# Dependencias
+node_modules/
+**/node_modules/
+
+# Builds
+dist/
+**/dist/
+build/
+**/build/
+.gradle/
+
+# Variables de entorno y secretos (NUNCA subir)
+.env
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+backend/credenciales/
+*service-account*.json
+*-firebase-adminsdk-*.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editores / SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporales de verificación
+verif/
+perfil-edge/
