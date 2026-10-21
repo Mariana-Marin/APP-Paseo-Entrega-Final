@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useEspacios, useReservas, useUsuarios } from '../hooks/usarDatos.js'
 import MapaUnidad from '../componentes/MapaUnidad.jsx'
+import Galeria from '../componentes/Galeria.jsx'
 import { iaDisponible } from '../servicios/iaGemini.js'
+import { urlFoto } from '../utilidades/formato.js'
 
-const FONDO = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=2000&q=80'
+const FONDO = urlFoto('img/aerea.jpg')
 
 function Estadistica({ num, etiqueta }) {
   return (
@@ -23,7 +25,7 @@ export default function Inicio() {
     <div>
       {/* Hero */}
       <section className="hero">
-        <div className="hero-media" style={{ backgroundImage: `url(${FONDO})` }} />
+        <div className="hero-media kenburns" style={{ backgroundImage: `url(${FONDO})` }} />
         <div className="contenedor hero-contenido">
           <div style={{ maxWidth: 680 }}>
             <span className="chip chip-oro mb-3"><i className="bi bi-geo-alt" /> Sabaneta, Antioquia</span>
@@ -60,6 +62,39 @@ export default function Inicio() {
             <p className="texto-suave">Mira qué zonas están libres en este momento y reserva con un clic.</p>
           </div>
           <MapaUnidad />
+        </div>
+      </section>
+
+      {/* Galería real de la unidad */}
+      <section className="seccion" style={{ paddingTop: 0 }}>
+        <div className="contenedor">
+          <div className="text-center mb-4">
+            <span className="chip mb-2"><i className="bi bi-images" /> Galería</span>
+            <h2 className="titulo-display" style={{ fontSize: 'clamp(1.6rem,4vw,2.4rem)' }}>Conoce Paseo de San Francisco</h2>
+            <p className="texto-suave">Fotos reales de las zonas comunes de la unidad. Toca una imagen para ampliarla.</p>
+          </div>
+          <Galeria />
+        </div>
+      </section>
+
+      {/* Franja de confianza con foto de la portería */}
+      <section className="seccion" style={{ paddingTop: 0 }}>
+        <div className="contenedor">
+          <div className="franja-imagen">
+            <img src={urlFoto('img/porteria.jpg')} alt="Portería de Paseo de San Francisco" loading="lazy" />
+            <div className="velo" />
+            <div className="texto" style={{ maxWidth: 560 }}>
+              <span className="chip chip-oro mb-2"><i className="bi bi-shield-check" /> Acceso seguro</span>
+              <h3 className="titulo-display" style={{ color: '#fff', fontSize: 'clamp(1.5rem,3.5vw,2.2rem)' }}>
+                Portería con verificación de pases
+              </h3>
+              <p style={{ color: 'rgba(234,255,245,.9)' }}>
+                Cada reserva genera un código y un QR que la portería valida al instante.
+                Nada de listas en papel ni confusiones en la entrada.
+              </p>
+              <Link to="/porteria" className="btn-oro"><i className="bi bi-qr-code-scan me-2" />Ir a portería</Link>
+            </div>
+          </div>
         </div>
       </section>
 

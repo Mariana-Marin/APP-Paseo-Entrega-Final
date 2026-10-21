@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { verificarReserva } from '../servicios/servicioReservas.js'
 import { mensajeDeError } from '../servicios/clienteApi.js'
-import { fechaBonita, rangoHoras, etiquetaEstado } from '../utilidades/formato.js'
+import { fechaBonita, rangoHoras, etiquetaEstado, urlFoto } from '../utilidades/formato.js'
 
 /**
  * Pantalla de portería: se ingresa (o llega por QR con ?codigo=) el código de
@@ -40,10 +40,14 @@ export default function Porteria() {
 
   return (
     <div className="contenedor seccion" style={{ maxWidth: 620 }}>
-      <div className="text-center mb-4">
-        <span className="chip mb-2"><i className="bi bi-qr-code-scan" /> Portería</span>
-        <h1 className="titulo-display" style={{ fontSize: 'clamp(1.8rem,4vw,2.4rem)' }}>Verificar pase de acceso</h1>
-        <p className="texto-suave">Ingresa el código del pase o escanea el QR del residente.</p>
+      <div className="franja-imagen mb-4" style={{ minHeight: 190 }}>
+        <img src={urlFoto('img/porteria.jpg')} alt="Portería de Paseo de San Francisco" loading="lazy" />
+        <div className="velo" />
+        <div className="texto">
+          <span className="chip chip-oro mb-2"><i className="bi bi-qr-code-scan" /> Portería</span>
+          <h1 className="titulo-display" style={{ color: '#fff', fontSize: 'clamp(1.6rem,4vw,2.2rem)' }}>Verificar pase de acceso</h1>
+          <p className="mb-0" style={{ color: 'rgba(234,255,245,.9)' }}>Ingresa el código del pase o escanea el QR del residente.</p>
+        </div>
       </div>
 
       <div className="tarjeta p-4">

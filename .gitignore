@@ -33,3 +33,6 @@ Thumbs.db
 # Temporales de verificación
 verif/
 perfil-edge/
+
+# Fotos originales sin procesar (las versiones usadas viven en frontend/public/img)
+/img/

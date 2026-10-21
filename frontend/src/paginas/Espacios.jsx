@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { useEspacios, useRegistrarEspacio } from '../hooks/usarDatos.js'
 import { Campo, Entrada, Area, Selector } from '../componentes/Campo.jsx'
 import { CargandoTarjetas, EstadoError, EstadoVacio, AvisoRespaldo } from '../componentes/Estados.jsx'
-import { categoria, CATEGORIAS } from '../utilidades/formato.js'
+import { categoria, CATEGORIAS, urlFoto } from '../utilidades/formato.js'
 import { iaDisponible, generarDescripcionEspacio } from '../servicios/iaGemini.js'
 
 const VACIO = {
@@ -23,7 +23,7 @@ function validar(d) {
 
 function TarjetaEspacio({ espacio }) {
   const cat = categoria(espacio.categoria)
-  const foto = espacio.foto || 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&q=80'
+  const foto = urlFoto(espacio.foto)
   return (
     <article className="tarjeta tarjeta-hover espacio-card aparecer">
       <div className="espacio-foto">

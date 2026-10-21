@@ -39,6 +39,53 @@ html[data-tema='oscuro'] .hero-media::after {
   background: linear-gradient(100deg, #020a07 8%, rgba(3,12,9,.86) 45%, rgba(3,12,9,.45) 100%);
 }
 .hero-contenido { position: relative; color: #eafff5; padding-block: clamp(3.5rem, 9vw, 7rem); }
+
+/* Efecto Ken Burns: la imagen del hero hace un zoom/paneo lento y elegante. */
+.hero-media.kenburns { animation: kenburns 24s ease-in-out infinite alternate; transform-origin: 60% 40%; }
+@keyframes kenburns {
+  0%   { transform: scale(1.08) translate(0, 0); }
+  100% { transform: scale(1.18) translate(-2%, -2%); }
+}
+
+/* ------------------------- Galería de la unidad ------------------------- */
+.galeria { display: grid; gap: .9rem; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 180px; }
+.galeria-item {
+  position: relative; overflow: hidden; border-radius: var(--radio); cursor: pointer;
+  border: 1px solid var(--borde); box-shadow: var(--sombra-sm);
+}
+.galeria-item img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.2,.7,.2,1); display: block; }
+.galeria-item:hover img { transform: scale(1.09); }
+.galeria-item::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, transparent 45%, rgba(6,40,29,.82) 100%);
+  opacity: .85; transition: opacity var(--transicion);
+}
+.galeria-item:hover::after { opacity: 1; }
+.galeria-cap {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: .9rem 1rem; color: #fff;
+  transform: translateY(6px); opacity: .92; transition: transform var(--transicion), opacity var(--transicion);
+}
+.galeria-item:hover .galeria-cap { transform: translateY(0); opacity: 1; }
+.galeria-cap .tit { font-weight: 700; display: block; }
+.galeria-cap .sub { font-size: .8rem; color: rgba(234,255,245,.82); }
+.galeria-grande { grid-column: span 2; grid-row: span 2; }
+.galeria-ancho { grid-column: span 2; }
+@media (max-width: 860px) {
+  .galeria { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; }
+  .galeria-grande { grid-column: span 2; grid-row: span 2; }
+  .galeria-ancho { grid-column: span 2; }
+}
+
+/* Visor a pantalla para la galería */
+.visor-fondo { position: fixed; inset: 0; z-index: 1065; background: rgba(3,12,9,.82); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 2rem; animation: aparecer .25s ease both; }
+.visor-fondo img { max-width: min(1100px, 94vw); max-height: 88vh; border-radius: var(--radio); box-shadow: var(--sombra-lg); }
+.visor-cerrar { position: absolute; top: 18px; right: 22px; color: #fff; font-size: 1.8rem; background: none; border: none; cursor: pointer; }
+
+/* Tarjeta de cara a cara con imagen (franja de confianza) */
+.franja-imagen { position: relative; border-radius: var(--radio-lg); overflow: hidden; min-height: 320px; display: flex; align-items: flex-end; }
+.franja-imagen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.franja-imagen .velo { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(6,40,29,.9), rgba(6,40,29,.25)); }
+.franja-imagen .texto { position: relative; z-index: 2; padding: 2rem; color: #fff; }
 .hero-contenido h1 { color: #fff; }
 .hero-vidrio {
   background: rgba(255,255,255,.1); backdrop-filter: blur(10px);

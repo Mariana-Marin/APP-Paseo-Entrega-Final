@@ -56,3 +56,25 @@ export function hoyISO() {
 export function etiquetaEstado(estado) {
   return { CONFIRMADA: 'Confirmada', PENDIENTE: 'Pendiente', CANCELADA: 'Cancelada' }[estado] ?? estado
 }
+
+// Imágenes reales de la unidad servidas desde /public/img.
+export const FOTOS = {
+  edificios: 'img/edificios.jpg',
+  piscina: 'img/piscina.jpg',
+  piscina2: 'img/piscina-2.jpg',
+  gimnasio: 'img/gimnasio.jpg',
+  cancha: 'img/cancha.jpg',
+  aerea: 'img/aerea.jpg',
+  porteria: 'img/porteria.jpg',
+}
+
+/**
+ * Resuelve la URL de una imagen. Las rutas relativas (p. ej. "img/piscina.jpg")
+ * se sirven desde la base del sitio (soporta GitHub Pages bajo /repo/); las URLs
+ * absolutas (http...) se devuelven tal cual.
+ */
+export function urlFoto(valor) {
+  if (!valor) return `${import.meta.env.BASE_URL}img/edificios.jpg`
+  if (/^https?:\/\//i.test(valor)) return valor
+  return `${import.meta.env.BASE_URL}${valor.replace(/^\/+/, '')}`
+}

@@ -5,8 +5,9 @@ import { Campo, Entrada } from '../componentes/Campo.jsx'
 import { useSesion } from '../contexto/SesionContexto.jsx'
 import { iniciarSesion } from '../servicios/servicioUsuarios.js'
 import { mensajeDeError } from '../servicios/clienteApi.js'
+import { urlFoto } from '../utilidades/formato.js'
 
-const IMG = 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1400&q=80'
+const IMG = urlFoto('img/porteria.jpg')
 
 export default function Entrar() {
   const navegar = useNavigate()
