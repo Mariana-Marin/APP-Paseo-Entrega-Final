@@ -40,6 +40,7 @@ public class EspacioEntrada {
 
     private Boolean alAireLibre;
     private Boolean activo;
+    private Boolean compartible;
 
     public String getNombre() {
         return nombre;
@@ -119,5 +120,13 @@ public class EspacioEntrada {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public Boolean getCompartible() {
+        return compartible;
+    }
+
+    public void setCompartible(Boolean compartible) {
+        this.compartible = compartible;
     }
 }

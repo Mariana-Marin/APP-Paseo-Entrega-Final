@@ -7,7 +7,8 @@ import { fechaBonita, rangoHoras } from '../utilidades/formato.js'
  */
 export default function PaseReserva({ reserva, alCerrar }) {
   if (!reserva) return null
-  const url = `${window.location.origin}${import.meta.env.BASE_URL}porteria?codigo=${reserva.codigoAcceso}`
+  // El QR del pase lleva a la pantalla de ingreso/check-in (tarea 8).
+  const url = `${window.location.origin}${import.meta.env.BASE_URL}ingreso?codigo=${reserva.codigoAcceso}`
 
   return (
     <div className="cmdk-fondo" onClick={alCerrar}>

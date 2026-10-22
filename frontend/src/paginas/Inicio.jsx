@@ -27,7 +27,7 @@ export default function Inicio() {
       <section className="hero">
         <div className="hero-media kenburns" style={{ backgroundImage: `url(${FONDO})` }} />
         <div className="contenedor hero-contenido">
-          <div style={{ maxWidth: 680 }}>
+          <div style={{ maxWidth: 820 }}>
             <span className="chip chip-oro mb-3"><i className="bi bi-geo-alt" /> Sabaneta, Antioquia</span>
             <h1 className="titulo-display" style={{ fontSize: 'clamp(2.2rem,6vw,4rem)' }}>
               Tu unidad, <span className="texto-oro">a un toque</span> de distancia

@@ -12,7 +12,7 @@
 //
 // El modelo se toma de VITE_GEMINI_MODEL (por defecto gemini-3.8-flash).
 // ---------------------------------------------------------------------------
-import { firebaseApp, firebaseConfigurado } from './firebase.js'
+import { firebaseApp, firebaseConfigurado, asegurarAppCheck } from './firebase.js'
 
 const MODELO = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.8-flash'
 
@@ -25,15 +25,16 @@ export function iaDisponible() {
 async function obtenerSdk() {
   if (!iaDisponible()) return null
   if (!aiPromesa) {
-    aiPromesa = import('firebase/ai')
-      .then((sdk) => {
-        const ai = sdk.getAI(firebaseApp, { backend: new sdk.GoogleAIBackend() })
-        return { sdk, ai }
-      })
-      .catch((e) => {
-        console.warn('No se pudo inicializar Firebase AI Logic:', e)
-        return null
-      })
+    aiPromesa = (async () => {
+      // App Check es obligatorio para AI Logic; lo preparamos antes de llamar.
+      await asegurarAppCheck()
+      const sdk = await import('firebase/ai')
+      const ai = sdk.getAI(firebaseApp, { backend: new sdk.GoogleAIBackend() })
+      return { sdk, ai }
+    })().catch((e) => {
+      console.warn('No se pudo inicializar Firebase AI Logic:', e)
+      return null
+    })
   }
   return aiPromesa
 }

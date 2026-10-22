@@ -23,7 +23,6 @@ export default function PiePagina() {
               <ul className="list-unstyled d-flex flex-column gap-2 texto-suave">
                 <li><Link to="/espacios" className="texto-suave">Espacios</Link></li>
                 <li><Link to="/reservas" className="texto-suave">Reservas</Link></li>
-                <li><Link to="/usuarios" className="texto-suave">Residentes</Link></li>
                 <li><Link to="/porteria" className="texto-suave">Portería</Link></li>
               </ul>
             </div>

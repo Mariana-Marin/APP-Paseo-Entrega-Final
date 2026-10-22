@@ -21,6 +21,7 @@ public class Espacio {
     private Integer horaCierre;    // hora local 1..24
     private Boolean alAireLibre;   // habilita el pronóstico del clima
     private Boolean activo;
+    private Boolean compartible;   // true: varios residentes a la vez hasta el aforo
     private String creadoEn;
 
     public Espacio() {
@@ -112,6 +113,14 @@ public class Espacio {
 
     public void setActivo(Boolean activo) {
         this.activo = activo;
+    }
+
+    public Boolean getCompartible() {
+        return compartible;
+    }
+
+    public void setCompartible(Boolean compartible) {
+        this.compartible = compartible;
     }
 
     public String getCreadoEn() {

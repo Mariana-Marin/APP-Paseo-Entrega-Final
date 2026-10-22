@@ -49,3 +49,9 @@ export async function verificarReserva(codigo) {
   const { data } = await clienteApi.get(`${RUTA}/verificar/${codigo}`)
   return data
 }
+
+/** Registra el ingreso de una persona (check-in por QR) en portería. */
+export async function registrarIngreso(codigo, persona) {
+  const { data } = await clienteApi.post(`${RUTA}/checkin/${codigo}`, persona)
+  return data
+}

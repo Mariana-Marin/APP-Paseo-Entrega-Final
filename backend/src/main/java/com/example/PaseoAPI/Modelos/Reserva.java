@@ -1,6 +1,8 @@
 package com.example.PaseoAPI.Modelos;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Reserva de un espacio por parte de un usuario. Mantiene los campos originales
@@ -19,10 +21,37 @@ public class Reserva {
     private Integer personas;
     private String estado;       // PENDIENTE | CONFIRMADA | CANCELADA
     private String notas;
-    private String codigoAcceso; // código corto para validar en portería (QR)
+    private String codigoAcceso;         // código del pase del residente (QR 1)
+    private String codigoVerificacion;   // código que se genera tras el check-in (QR 2)
+    private Integer ingresados;          // cuántas personas han entrado ya
+    private List<Asistente> asistentes;  // registro de quienes entraron
     private String creadoEn;
 
     public Reserva() {
+        this.ingresados = 0;
+        this.asistentes = new ArrayList<>();
+    }
+
+    /** Persona que ingresa a la unidad, registrada en portería. */
+    public static class Asistente {
+        private String nombre;
+        private String cedula;
+        private String ingresoEn;
+
+        public Asistente() {}
+
+        public Asistente(String nombre, String cedula, String ingresoEn) {
+            this.nombre = nombre;
+            this.cedula = cedula;
+            this.ingresoEn = ingresoEn;
+        }
+
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        public String getCedula() { return cedula; }
+        public void setCedula(String cedula) { this.cedula = cedula; }
+        public String getIngresoEn() { return ingresoEn; }
+        public void setIngresoEn(String ingresoEn) { this.ingresoEn = ingresoEn; }
     }
 
     public String getId() {
@@ -111,6 +140,33 @@ public class Reserva {
 
     public void setCodigoAcceso(String codigoAcceso) {
         this.codigoAcceso = codigoAcceso;
+    }
+
+    public String getCodigoVerificacion() {
+        return codigoVerificacion;
+    }
+
+    public void setCodigoVerificacion(String codigoVerificacion) {
+        this.codigoVerificacion = codigoVerificacion;
+    }
+
+    public Integer getIngresados() {
+        return ingresados == null ? 0 : ingresados;
+    }
+
+    public void setIngresados(Integer ingresados) {
+        this.ingresados = ingresados;
+    }
+
+    public List<Asistente> getAsistentes() {
+        if (asistentes == null) {
+            asistentes = new ArrayList<>();
+        }
+        return asistentes;
+    }
+
+    public void setAsistentes(List<Asistente> asistentes) {
+        this.asistentes = asistentes;
     }
 
     public String getCreadoEn() {

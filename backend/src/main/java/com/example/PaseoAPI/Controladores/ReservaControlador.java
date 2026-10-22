@@ -1,5 +1,6 @@
 package com.example.PaseoAPI.Controladores;
 
+import com.example.PaseoAPI.Dto.CheckinEntrada;
 import com.example.PaseoAPI.Dto.ReservaEntrada;
 import com.example.PaseoAPI.Modelos.Reserva;
 import com.example.PaseoAPI.Servicios.ReservaServicio;
@@ -60,5 +61,15 @@ public class ReservaControlador {
     @GetMapping("/verificar/{codigo}")
     public Reserva verificar(@PathVariable String codigo) {
         return servicio.verificarPorCodigo(codigo);
+    }
+
+    /**
+     * Registro de ingreso de una persona a la unidad (check-in por QR):
+     * POST /api/reservas/checkin/{codigo} con { nombre, cedula }.
+     * Disminuye el cupo y, al completarse, emite el código de verificación.
+     */
+    @PostMapping("/checkin/{codigo}")
+    public Reserva checkin(@PathVariable String codigo, @Valid @RequestBody CheckinEntrada datos) {
+        return servicio.registrarIngreso(codigo, datos.getNombre(), datos.getCedula());
     }
 }

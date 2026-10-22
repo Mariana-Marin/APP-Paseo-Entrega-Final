@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useEspacios, useRegistrarEspacio } from '../hooks/usarDatos.js'
+import { useSesion } from '../contexto/SesionContexto.jsx'
 import { Campo, Entrada, Area, Selector } from '../componentes/Campo.jsx'
 import { CargandoTarjetas, EstadoError, EstadoVacio, AvisoRespaldo } from '../componentes/Estados.jsx'
 import { categoria, CATEGORIAS, urlFoto } from '../utilidades/formato.js'
@@ -9,7 +10,7 @@ import { iaDisponible, generarDescripcionEspacio } from '../servicios/iaGemini.j
 
 const VACIO = {
   nombre: '', descripcion: '', foto: '', aforo: '', categoria: '',
-  ubicacion: '', horaApertura: 6, horaCierre: 22, alAireLibre: false,
+  ubicacion: '', horaApertura: 6, horaCierre: 22, alAireLibre: false, compartible: false,
 }
 
 function validar(d) {
@@ -31,6 +32,7 @@ function TarjetaEspacio({ espacio }) {
         <div className="cinta">
           <span className="chip"><i className={`bi ${cat.icono}`} />{cat.etiqueta}</span>
           {espacio.alAireLibre && <span className="chip chip-oro"><i className="bi bi-sun" />Aire libre</span>}
+          {espacio.compartible && <span className="chip"><i className="bi bi-people-fill" />Compartido</span>}
         </div>
       </div>
       <div className="espacio-cuerpo">
@@ -54,12 +56,23 @@ function TarjetaEspacio({ espacio }) {
 export default function Espacios() {
   const { data, isLoading, isError, error, refetch } = useEspacios()
   const registrar = useRegistrarEspacio()
+  const { esAdmin } = useSesion()
+  const [params] = useSearchParams()
   const [form, setForm] = useState(VACIO)
   const [errores, setErrores] = useState({})
   const [mostrarForm, setMostrarForm] = useState(false)
   const [generando, setGenerando] = useState(false)
 
-  const espacios = data?.datos ?? []
+  const termino = (params.get('q') ?? '').toLowerCase()
+  const todos = data?.datos ?? []
+  const espacios = useMemo(() => {
+    if (!termino) return todos
+    return todos.filter((e) =>
+      [e.nombre, e.descripcion, e.categoria, e.ubicacion]
+        .filter(Boolean)
+        .some((t) => t.toLowerCase().includes(termino)),
+    )
+  }, [todos, termino])
 
   const cambiar = (e) => {
     const { name, value, type, checked } = e.target
@@ -108,12 +121,19 @@ export default function Espacios() {
         <div>
           <span className="chip mb-2"><i className="bi bi-grid-3x3-gap" /> Módulo de espacios</span>
           <h1 className="titulo-display" style={{ fontSize: 'clamp(1.8rem,4vw,2.6rem)' }}>Zonas comunes</h1>
-          <p className="texto-suave mb-0">Explora las zonas de la unidad y regístralas con su aforo y horario.</p>
+          <p className="texto-suave mb-0">
+            {termino
+              ? `Resultados para "${termino}" (${espacios.length})`
+              : 'Explora las zonas de la unidad y reserva la que necesites.'}
+          </p>
         </div>
-        <button className="btn-marca" onClick={() => setMostrarForm((v) => !v)}>
-          <i className={`bi ${mostrarForm ? 'bi-x-lg' : 'bi-plus-lg'} me-1`} />
-          {mostrarForm ? 'Cerrar formulario' : 'Registrar espacio'}
-        </button>
+        {/* El registro de espacios es solo para administradores (tarea 6). */}
+        {esAdmin && (
+          <button className="btn-marca" onClick={() => setMostrarForm((v) => !v)}>
+            <i className={`bi ${mostrarForm ? 'bi-x-lg' : 'bi-plus-lg'} me-1`} />
+            {mostrarForm ? 'Cerrar formulario' : 'Registrar espacio'}
+          </button>
+        )}
       </div>
 
       {/* Formulario de registro (POST /api/espacios) */}
@@ -176,6 +196,12 @@ export default function Espacios() {
                 <span className="fw-semibold">Es una zona al aire libre (muestra el clima)</span>
               </label>
             </div>
+            <div className="col-md-6 d-flex align-items-center">
+              <label className="d-flex align-items-center gap-2 mt-2">
+                <input type="checkbox" name="compartible" checked={form.compartible} onChange={cambiar} />
+                <span className="fw-semibold">Uso compartido (varios residentes a la vez hasta el aforo)</span>
+              </label>
+            </div>
           </div>
 
           <button className="btn-marca mt-2" disabled={registrar.isPending}>
@@ -191,7 +217,9 @@ export default function Espacios() {
       ) : isError ? (
         <EstadoError error={error} alReintentar={refetch} />
       ) : espacios.length === 0 ? (
-        <EstadoVacio icono="bi-grid" titulo="Todavía no hay espacios">Registra el primero con el botón de arriba.</EstadoVacio>
+        <EstadoVacio icono="bi-grid" titulo={termino ? 'Sin resultados' : 'Todavía no hay espacios'}>
+          {termino ? 'Prueba con otra búsqueda.' : esAdmin ? 'Registra el primero con el botón de arriba.' : 'Pronto habrá zonas disponibles.'}
+        </EstadoVacio>
       ) : (
         <div className="grid-auto">
           {espacios.map((e) => <TarjetaEspacio key={e.id} espacio={e} />)}

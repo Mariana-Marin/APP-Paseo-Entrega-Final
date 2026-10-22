@@ -91,7 +91,7 @@ public class ReservaServicio {
         int horaFin = horaInicio + datos.getTiempo();
         validarHorario(espacio, horaInicio, horaFin);
         validarAforo(espacio, datos.getPersonas());
-        validarSolapamiento(espacio.getId(), inicio.toLocalDate(), horaInicio, horaFin, null);
+        validarSolapamiento(espacio, inicio.toLocalDate(), horaInicio, horaFin, datos.getPersonas(), null);
 
         Reserva r = new Reserva();
         r.setEspacioId(espacio.getId());
@@ -121,7 +121,7 @@ public class ReservaServicio {
         int horaFin = horaInicio + datos.getTiempo();
         validarHorario(espacio, horaInicio, horaFin);
         validarAforo(espacio, datos.getPersonas());
-        validarSolapamiento(espacio.getId(), inicio.toLocalDate(), horaInicio, horaFin, id);
+        validarSolapamiento(espacio, inicio.toLocalDate(), horaInicio, horaFin, datos.getPersonas(), id);
 
         actual.setEspacioId(espacio.getId());
         actual.setEspacioNombre(espacio.getNombre());
@@ -149,8 +149,47 @@ public class ReservaServicio {
     }
 
     public Reserva verificarPorCodigo(String codigo) {
-        return repositorioReserva.buscarPorCodigo(codigo == null ? null : codigo.trim().toUpperCase())
+        String c = codigo == null ? null : codigo.trim().toUpperCase();
+        // El QR puede traer el código del pase (QR 1) o el de verificación (QR 2).
+        Optional<Reserva> porAcceso = repositorioReserva.buscarPorCodigo(c);
+        if (porAcceso.isPresent()) {
+            return porAcceso.get();
+        }
+        return repositorioReserva.listar().stream()
+                .filter(r -> r.getCodigoVerificacion() != null && r.getCodigoVerificacion().equalsIgnoreCase(c))
+                .findFirst()
+                .orElseThrow(() -> new ExcepcionNoEncontrado("No hay ninguna reserva con ese código"));
+    }
+
+    /**
+     * Registra el ingreso de una persona (nombre + cédula) a la unidad usando el
+     * código del pase. Disminuye el cupo restante. Cuando ya han ingresado todas
+     * las personas de la reserva, genera un código de verificación (QR 2) que el
+     * portero puede usar para confirmar que el registro quedó completo.
+     */
+    public Reserva registrarIngreso(String codigo, String nombre, String cedula) {
+        Reserva r = repositorioReserva.buscarPorCodigo(codigo == null ? null : codigo.trim().toUpperCase())
                 .orElseThrow(() -> new ExcepcionNoEncontrado("No hay ninguna reserva con ese código de acceso"));
+
+        if ("CANCELADA".equalsIgnoreCase(r.getEstado())) {
+            throw new ExcepcionNegocio("Esta reserva fue cancelada; no permite ingresos");
+        }
+
+        int total = r.getPersonas() == null ? 1 : r.getPersonas();
+        int yaIngresados = r.getIngresados();
+        if (yaIngresados >= total) {
+            throw new ExcepcionNegocio("Ya ingresaron todas las personas de esta reserva (" + total + ")");
+        }
+
+        r.getAsistentes().add(new Reserva.Asistente(
+                nombre.trim(), cedula.trim(), LocalDateTime.now(zona).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)));
+        r.setIngresados(yaIngresados + 1);
+
+        // Si ya entraron todos, emitir el código de verificación (QR 2).
+        if (r.getIngresados() >= total && r.getCodigoVerificacion() == null) {
+            r.setCodigoVerificacion("OK-" + generarCodigo());
+        }
+        return repositorioReserva.guardar(r);
     }
 
     /** Calcula franjas ocupadas y horas libres de un espacio en un día dado. */
@@ -161,12 +200,11 @@ public class ReservaServicio {
 
         int apertura = espacio.getHoraApertura() == null ? 6 : espacio.getHoraApertura();
         int cierre = espacio.getHoraCierre() == null ? 22 : espacio.getHoraCierre();
+        boolean compartible = espacio.getCompartible() != null && espacio.getCompartible();
+        int aforo = espacio.getAforo() == null ? Integer.MAX_VALUE : espacio.getAforo();
 
         List<DisponibilidadSalida.FranjaOcupada> ocupadas = new ArrayList<>();
-        boolean[] libre = new boolean[24];
-        for (int h = apertura; h < cierre; h++) {
-            libre[h] = true;
-        }
+        int[] personasPorHora = new int[24];
 
         for (Reserva r : repositorioReserva.listarPorEspacio(espacioId)) {
             if (esCancelada(r) || r.getFecha() == null) {
@@ -180,13 +218,16 @@ public class ReservaServicio {
             int h1 = h0 + (r.getTiempo() == null ? 1 : r.getTiempo());
             ocupadas.add(new DisponibilidadSalida.FranjaOcupada(h0, h1, r.getId()));
             for (int h = h0; h < h1 && h < 24; h++) {
-                libre[h] = false;
+                personasPorHora[h] += (r.getPersonas() == null ? 1 : r.getPersonas());
             }
         }
 
+        // Una hora está libre si: en espacio exclusivo no hay nadie; en espacio
+        // compartible todavía queda cupo (personas acumuladas < aforo).
         List<Integer> horasLibres = new ArrayList<>();
         for (int h = apertura; h < cierre; h++) {
-            if (libre[h]) {
+            boolean libre = compartible ? personasPorHora[h] < aforo : personasPorHora[h] == 0;
+            if (libre) {
                 horasLibres.add(h);
             }
         }
@@ -215,8 +256,19 @@ public class ReservaServicio {
         }
     }
 
-    private void validarSolapamiento(String espacioId, LocalDate dia, int horaInicio, int horaFin, String ignorarId) {
-        for (Reserva r : repositorioReserva.listarPorEspacio(espacioId)) {
+    /**
+     * Valida choques de horario según el tipo de espacio:
+     *  - Espacio COMPARTIBLE (piscina, gimnasio, coworking): varios residentes
+     *    pueden coincidir mientras la suma de personas de las reservas que se
+     *    solapan NO supere el aforo. Solo se bloquea si se llenaría el cupo.
+     *  - Espacio EXCLUSIVO (salón, BBQ, cancha): una sola reserva por franja.
+     */
+    private void validarSolapamiento(Espacio espacio, LocalDate dia, int horaInicio, int horaFin,
+                                     int personasNuevas, String ignorarId) {
+        boolean compartible = espacio.getCompartible() != null && espacio.getCompartible();
+        int aforo = espacio.getAforo() == null ? Integer.MAX_VALUE : espacio.getAforo();
+
+        for (Reserva r : repositorioReserva.listarPorEspacio(espacio.getId())) {
             if (esCancelada(r) || r.getFecha() == null) {
                 continue;
             }
@@ -229,10 +281,38 @@ public class ReservaServicio {
             }
             int h0 = ini.getHour();
             int h1 = h0 + (r.getTiempo() == null ? 1 : r.getTiempo());
-            // Dos franjas [a,b) y [c,d) se solapan si a < d y c < b.
-            if (horaInicio < h1 && h0 < horaFin) {
+            boolean seSolapan = horaInicio < h1 && h0 < horaFin;
+            if (!seSolapan) {
+                continue;
+            }
+
+            if (!compartible) {
                 throw new ExcepcionConflicto(String.format(
                         "Ya hay una reserva de %02d:00 a %02d:00 para ese espacio ese día", h0, h1));
+            }
+        }
+
+        // En espacios compartibles, revisar hora por hora que no se supere el aforo.
+        if (compartible) {
+            for (int h = horaInicio; h < horaFin; h++) {
+                int ocupadas = personasNuevas;
+                for (Reserva r : repositorioReserva.listarPorEspacio(espacio.getId())) {
+                    if (esCancelada(r) || r.getFecha() == null) continue;
+                    if (ignorarId != null && ignorarId.equals(r.getId())) continue;
+                    LocalDateTime ini = parsearFechaSilencioso(r.getFecha());
+                    if (ini == null || !ini.toLocalDate().equals(dia)) continue;
+                    int h0 = ini.getHour();
+                    int h1 = h0 + (r.getTiempo() == null ? 1 : r.getTiempo());
+                    if (h >= h0 && h < h1) {
+                        ocupadas += (r.getPersonas() == null ? 1 : r.getPersonas());
+                    }
+                }
+                if (ocupadas > aforo) {
+                    throw new ExcepcionConflicto(String.format(
+                            "A las %02d:00 el espacio '%s' llegaría a %d personas y el aforo es %d. "
+                            + "Elige otra hora o reduce el número de personas.",
+                            h, espacio.getNombre(), ocupadas, aforo));
+                }
             }
         }
     }

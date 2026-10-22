@@ -1,25 +1,44 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTema } from '../contexto/TemaContexto.jsx'
 import { useSesion } from '../contexto/SesionContexto.jsx'
 
-const enlaces = [
-  { a: '/', texto: 'Inicio', icono: 'bi-house' },
-  { a: '/espacios', texto: 'Espacios', icono: 'bi-grid-3x3-gap' },
-  { a: '/reservas', texto: 'Reservas', icono: 'bi-calendar-check' },
-  { a: '/usuarios', texto: 'Residentes', icono: 'bi-people' },
-  { a: '/porteria', texto: 'Portería', icono: 'bi-qr-code-scan' },
-]
-
-export default function NavBar({ onAbrirComandos }) {
+export default function NavBar() {
   const { tema, alternar } = useTema()
-  const { usuario, autenticado, cerrar } = useSesion()
-  const [abierto, setAbierto] = useState(false)
+  const { usuario, autenticado, esAdmin, cerrar } = useSesion()
+  const [abierto, setAbierto] = useState(false)       // menú móvil
+  const [menuUsuario, setMenuUsuario] = useState(false) // dropdown usuario
+  const [busqueda, setBusqueda] = useState('')
   const navegar = useNavigate()
+  const menuRef = useRef(null)
+
+  // Enlaces: "Residentes" solo para administradores (tareas 6 y 7).
+  const enlaces = [
+    { a: '/', texto: 'Inicio', icono: 'bi-house', visible: true },
+    { a: '/espacios', texto: 'Espacios', icono: 'bi-grid-3x3-gap', visible: true },
+    { a: '/reservas', texto: 'Reservas', icono: 'bi-calendar-check', visible: true },
+    { a: '/usuarios', texto: 'Residentes', icono: 'bi-people', visible: esAdmin },
+    { a: '/porteria', texto: 'Portería', icono: 'bi-qr-code-scan', visible: true },
+  ].filter((e) => e.visible)
+
+  // Cierra el dropdown del usuario al hacer clic fuera.
+  useEffect(() => {
+    const fuera = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuUsuario(false) }
+    document.addEventListener('mousedown', fuera)
+    return () => document.removeEventListener('mousedown', fuera)
+  }, [])
 
   const salir = () => {
     cerrar()
+    setMenuUsuario(false)
     navegar('/')
+  }
+
+  const buscar = (e) => {
+    e.preventDefault()
+    const q = busqueda.trim()
+    navegar(q ? `/espacios?q=${encodeURIComponent(q)}` : '/espacios')
+    setAbierto(false)
   }
 
   return (
@@ -33,7 +52,7 @@ export default function NavBar({ onAbrirComandos }) {
           </span>
         </Link>
 
-        <div className="d-none d-lg-flex align-items-center gap-4 ms-3">
+        <div className="d-none d-lg-flex align-items-center gap-4 ms-2">
           {enlaces.map((e) => (
             <NavLink
               key={e.a}
@@ -46,26 +65,56 @@ export default function NavBar({ onAbrirComandos }) {
           ))}
         </div>
 
-        <div className="ms-auto d-flex align-items-center gap-2">
-          <button className="btn-fantasma d-none d-md-inline-flex align-items-center gap-1" onClick={onAbrirComandos} title="Buscar (Ctrl+K)">
-            <i className="bi bi-search" /><kbd className="d-none d-xl-inline" style={{ fontSize: '.7rem' }}>Ctrl K</kbd>
-          </button>
+        {/* Barra de búsqueda real (tarea 2) */}
+        <form className="barra-busqueda d-none d-md-flex ms-auto" onSubmit={buscar} role="search">
+          <i className="bi bi-search" />
+          <input
+            type="search"
+            placeholder="Buscar espacios…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            aria-label="Buscar espacios"
+          />
+          {busqueda && (
+            <button type="button" className="limpiar" onClick={() => setBusqueda('')} aria-label="Limpiar">
+              <i className="bi bi-x" />
+            </button>
+          )}
+        </form>
+
+        <div className="d-flex align-items-center gap-2 ms-md-2 ms-auto">
           <button className="btn-fantasma" onClick={alternar} title="Cambiar tema" aria-label="Cambiar tema">
             <i className={`bi ${tema === 'oscuro' ? 'bi-sun' : 'bi-moon-stars'}`} />
           </button>
 
           {autenticado ? (
-            <div className="dropdown">
-              <button className="btn-contorno dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+            <div className="position-relative" ref={menuRef}>
+              <button className="btn-contorno d-flex align-items-center gap-2" onClick={() => setMenuUsuario((v) => !v)}>
                 <i className="bi bi-person-circle" />
                 <span className="d-none d-sm-inline">{usuario.nombres?.split(' ')[0]}</span>
+                <i className={`bi bi-chevron-${menuUsuario ? 'up' : 'down'}`} style={{ fontSize: '.75rem' }} />
               </button>
-              <ul className="dropdown-menu dropdown-menu-end">
-                <li><Link className="dropdown-item" to="/panel"><i className="bi bi-speedometer2 me-2" />Panel</Link></li>
-                <li><Link className="dropdown-item" to="/reservas"><i className="bi bi-calendar-check me-2" />Mis reservas</Link></li>
-                <li><hr className="dropdown-divider" /></li>
-                <li><button className="dropdown-item text-danger" onClick={salir}><i className="bi bi-box-arrow-right me-2" />Salir</button></li>
-              </ul>
+              {menuUsuario && (
+                <div className="menu-usuario tarjeta aparecer">
+                  <div className="px-3 py-2 border-bottom" style={{ borderColor: 'var(--borde)' }}>
+                    <div className="fw-semibold">{usuario.nombres}</div>
+                    <div className="texto-tenue" style={{ fontSize: '.78rem' }}>
+                      {esAdmin ? 'Administrador' : 'Residente'}
+                    </div>
+                  </div>
+                  <Link className="menu-item" to="/reservas" onClick={() => setMenuUsuario(false)}>
+                    <i className="bi bi-calendar-check me-2" />Mis reservas
+                  </Link>
+                  {esAdmin && (
+                    <Link className="menu-item" to="/panel" onClick={() => setMenuUsuario(false)}>
+                      <i className="bi bi-speedometer2 me-2" />Panel
+                    </Link>
+                  )}
+                  <button className="menu-item text-danger" onClick={salir}>
+                    <i className="bi bi-box-arrow-right me-2" />Cerrar sesión
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <Link to="/entrar" className="btn-marca"><i className="bi bi-box-arrow-in-right me-1" />Entrar</Link>
@@ -79,6 +128,10 @@ export default function NavBar({ onAbrirComandos }) {
 
       {abierto && (
         <div className="d-lg-none contenedor pb-3 d-flex flex-column gap-1 aparecer">
+          <form className="barra-busqueda d-flex d-md-none mb-2" onSubmit={buscar} role="search">
+            <i className="bi bi-search" />
+            <input type="search" placeholder="Buscar espacios…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+          </form>
           {enlaces.map((e) => (
             <NavLink
               key={e.a}

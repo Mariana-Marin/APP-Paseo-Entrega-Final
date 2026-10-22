@@ -101,6 +101,56 @@ class PaseoApiApplicationTests {
     }
 
     @Test
+    void espacioCompartibleAdmiteVariosHastaElAforo() {
+        // Gimnasio compartible, aforo 10
+        EspacioEntrada e = new EspacioEntrada();
+        e.setNombre("Gimnasio de pruebas");
+        e.setDescripcion("Espacio compartible de pruebas");
+        e.setAforo(10);
+        e.setCategoria("GIMNASIO");
+        e.setHoraApertura(6);
+        e.setHoraCierre(22);
+        e.setActivo(true);
+        Espacio gim = espacioServicio.registrar(e);
+        assertTrue(gim.getCompartible());
+
+        String u1 = crearUsuario("g1@correo.com");
+        String u2 = crearUsuario("g2@correo.com");
+        String u3 = crearUsuario("g3@correo.com");
+        String manana = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0)
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+
+        // Dos reservas a la misma hora (6 + 3 = 9 <= 10) deben permitirse
+        assertNotNull(reservaServicio.registrar(reserva(gim.getId(), u1, manana, 1, 6)));
+        assertNotNull(reservaServicio.registrar(reserva(gim.getId(), u2, manana, 1, 3)));
+
+        // La tercera (9 + 2 = 11 > 10) debe bloquearse por aforo
+        assertThrows(ExcepcionConflicto.class,
+                () -> reservaServicio.registrar(reserva(gim.getId(), u3, manana, 1, 2)));
+    }
+
+    @Test
+    void checkinDisminuyeCupoYGeneraVerificacion() {
+        Espacio salon = crearSalon();
+        String usuarioId = crearUsuario("checkin@correo.com");
+        String manana = LocalDateTime.now().plusDays(1).withHour(9).withMinute(0)
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+        var creada = reservaServicio.registrar(reserva(salon.getId(), usuarioId, manana, 2, 2));
+
+        var r1 = reservaServicio.registrarIngreso(creada.getCodigoAcceso(), "Ana Perez", "123456");
+        assertEquals(1, r1.getIngresados());
+        assertNull(r1.getCodigoVerificacion()); // aún falta una persona
+
+        var r2 = reservaServicio.registrarIngreso(creada.getCodigoAcceso(), "Luis Gomez", "654321");
+        assertEquals(2, r2.getIngresados());
+        assertNotNull(r2.getCodigoVerificacion()); // completo -> QR 2
+
+        // No se puede ingresar más gente de la reservada
+        assertThrows(ExcepcionNegocio.class,
+                () -> reservaServicio.registrarIngreso(creada.getCodigoAcceso(), "Otro", "000000"));
+    }
+
+    @Test
     void rechazaReservasEnElPasado() {
         Espacio salon = crearSalon();
         String usuarioId = crearUsuario("diana@correo.com");
@@ -133,5 +183,15 @@ class PaseoApiApplicationTests {
         u.setContrasena("clave123");
         u.setRol("RESIDENTE");
         return usuarioServicio.registrar(u).getId();
+    }
+
+    private ReservaEntrada reserva(String espacioId, String usuarioId, String fecha, int horas, int personas) {
+        ReservaEntrada r = new ReservaEntrada();
+        r.setEspacioId(espacioId);
+        r.setUsuarioId(usuarioId);
+        r.setFecha(fecha);
+        r.setTiempo(horas);
+        r.setPersonas(personas);
+        return r;
     }
 }

@@ -41,7 +41,7 @@
   --sombra-lg: 0 30px 60px -20px rgba(6, 40, 29, .35);
   --anillo: 0 0 0 .22rem rgba(16, 185, 129, .28);
   --transicion: .22s cubic-bezier(.4, 0, .2, 1);
-  --contenedor: 1180px;
+  --contenedor: 1320px;
   --fuente: 'Plus Jakarta Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }
 

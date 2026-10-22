@@ -24,6 +24,35 @@
   background: linear-gradient(90deg, var(--marca-500), var(--oro-500));
 }
 
+/* Barra de búsqueda de la navbar */
+.barra-busqueda {
+  align-items: center; gap: .5rem; flex: 1; max-width: 340px;
+  background: var(--superficie-2); border: 1.5px solid var(--borde);
+  border-radius: 999px; padding: .4rem .9rem; transition: border-color var(--transicion), box-shadow var(--transicion);
+}
+.barra-busqueda:focus-within { border-color: var(--marca-500); box-shadow: var(--anillo); }
+.barra-busqueda > i { color: var(--texto-tenue); }
+.barra-busqueda input {
+  border: none; background: transparent; outline: none; color: var(--texto);
+  width: 100%; font-size: .92rem;
+}
+.barra-busqueda input::placeholder { color: var(--texto-tenue); }
+.barra-busqueda .limpiar { border: none; background: transparent; color: var(--texto-tenue); cursor: pointer; padding: 0; display: flex; }
+.barra-busqueda .limpiar:hover { color: var(--texto); }
+
+/* Menú desplegable del usuario */
+.menu-usuario {
+  position: absolute; right: 0; top: calc(100% + 8px); z-index: 1040;
+  min-width: 230px; padding: .4rem; box-shadow: var(--sombra-lg);
+}
+.menu-usuario .menu-item {
+  display: flex; align-items: center; width: 100%; text-align: left;
+  padding: .6rem .75rem; border-radius: 10px; border: none; background: transparent;
+  color: var(--texto); font-weight: 500; cursor: pointer; transition: background var(--transicion);
+  text-decoration: none; font-size: .92rem;
+}
+.menu-usuario .menu-item:hover { background: var(--superficie-2); }
+
 /* -------------------------------- Hero ---------------------------------- */
 .hero { position: relative; overflow: hidden; }
 .hero-media {

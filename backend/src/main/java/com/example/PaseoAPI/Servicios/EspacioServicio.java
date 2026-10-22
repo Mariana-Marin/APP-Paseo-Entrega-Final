@@ -20,6 +20,11 @@ public class EspacioServicio {
     private static final Set<String> CATEGORIAS =
             Set.of("PISCINA", "SALON", "GIMNASIO", "BBQ", "DEPORTIVO", "COWORKING", "OTRO");
 
+    // Categorías que, por naturaleza, varios residentes pueden usar a la vez
+    // (hasta completar el aforo). El resto se reserva en exclusiva por franja.
+    private static final Set<String> CATEGORIAS_COMPARTIBLES =
+            Set.of("PISCINA", "GIMNASIO", "COWORKING");
+
     private final iRepositorioEspacio repositorio;
 
     public EspacioServicio(iRepositorioEspacio repositorio) {
@@ -62,16 +67,21 @@ public class EspacioServicio {
             throw new ExcepcionNegocio("La hora de cierre debe ser mayor que la de apertura");
         }
 
+        String categoria = normalizarCategoria(datos.getCategoria());
         e.setNombre(datos.getNombre().trim());
         e.setDescripcion(datos.getDescripcion().trim());
         e.setFoto(datos.getFoto() == null ? null : datos.getFoto().trim());
         e.setAforo(datos.getAforo());
-        e.setCategoria(normalizarCategoria(datos.getCategoria()));
+        e.setCategoria(categoria);
         e.setUbicacion(datos.getUbicacion() == null ? null : datos.getUbicacion().trim());
         e.setHoraApertura(apertura);
         e.setHoraCierre(cierre);
         e.setAlAireLibre(datos.getAlAireLibre() != null && datos.getAlAireLibre());
         e.setActivo(datos.getActivo() == null || datos.getActivo());
+        // Si el formulario no lo especifica, se infiere por la categoría.
+        e.setCompartible(datos.getCompartible() != null
+                ? datos.getCompartible()
+                : CATEGORIAS_COMPARTIBLES.contains(categoria));
     }
 
     private String normalizarCategoria(String categoria) {
