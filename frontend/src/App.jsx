@@ -10,8 +10,8 @@ import Espacios from './paginas/Espacios.jsx'
 import Reservas from './paginas/Reservas.jsx'
 import Usuarios from './paginas/Usuarios.jsx'
 import Entrar from './paginas/Entrar.jsx'
+import Registro from './paginas/Registro.jsx'
 import Porteria from './paginas/Porteria.jsx'
-import Ingreso from './paginas/Ingreso.jsx'
 import Panel from './paginas/Panel.jsx'
 import NoEncontrada from './paginas/NoEncontrada.jsx'
 
@@ -35,8 +35,8 @@ export default function App() {
           <Route path="/reservas" element={<Reservas />} />
           <Route path="/usuarios" element={<Protegida soloAdmin><Usuarios /></Protegida>} />
           <Route path="/entrar" element={<Entrar />} />
+          <Route path="/registro" element={<Registro />} />
           <Route path="/porteria" element={<Porteria />} />
-          <Route path="/ingreso" element={<Ingreso />} />
           <Route path="/panel" element={<Protegida soloAdmin><Panel /></Protegida>} />
           <Route path="/404" element={<NoEncontrada />} />
           <Route path="*" element={<Navigate to="/404" replace />} />

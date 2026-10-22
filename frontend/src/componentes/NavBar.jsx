@@ -117,7 +117,10 @@ export default function NavBar() {
               )}
             </div>
           ) : (
-            <Link to="/entrar" className="btn-marca"><i className="bi bi-box-arrow-in-right me-1" />Entrar</Link>
+            <>
+              <Link to="/registro" className="btn-contorno d-none d-sm-inline-flex"><i className="bi bi-person-plus me-1" />Crear cuenta</Link>
+              <Link to="/entrar" className="btn-marca"><i className="bi bi-box-arrow-in-right me-1" />Entrar</Link>
+            </>
           )}
 
           <button className="btn-fantasma d-lg-none" onClick={() => setAbierto((v) => !v)} aria-label="Menú">

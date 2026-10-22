@@ -240,7 +240,6 @@ export default function Reservas() {
                         <div className="texto-tenue small">
                           {esAdmin && <><i className="bi bi-person me-1" />{r.usuarioNombre} · </>}
                           <i className="bi bi-people me-1" />{r.personas}
-                          {r.ingresados > 0 && <> · <i className="bi bi-box-arrow-in-right me-1" />{r.ingresados}/{r.personas} dentro</>}
                         </div>
                       </div>
                       <div className="text-end">

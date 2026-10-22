@@ -60,7 +60,7 @@ export default function Entrar() {
           <div className="tarjeta p-3 mt-4" style={{ background: 'var(--superficie-2)' }}>
             <div className="texto-tenue small"><i className="bi bi-info-circle me-1" />Demo: <strong>admin@paseosanfrancisco.co</strong> / <strong>paseo2026</strong></div>
           </div>
-          <p className="texto-suave small mt-3 mb-0">¿Aún no tienes cuenta? <Link to="/usuarios">Regístrate aquí</Link>.</p>
+          <p className="texto-suave small mt-3 mb-0">¿Aún no tienes cuenta? <Link to="/registro">Regístrate aquí</Link>.</p>
         </div>
       </div>
     </div>

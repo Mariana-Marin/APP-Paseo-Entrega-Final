@@ -86,23 +86,6 @@ export default function Porteria() {
             <div className="d-flex justify-content-between py-1"><span className="texto-suave">Fecha</span><strong>{fechaBonita(reserva.fecha)}</strong></div>
             <div className="d-flex justify-content-between py-1"><span className="texto-suave">Horario</span><strong>{rangoHoras(reserva.fecha, reserva.tiempo)}</strong></div>
             <div className="d-flex justify-content-between py-1"><span className="texto-suave">Personas</span><strong>{reserva.personas}</strong></div>
-            <div className="d-flex justify-content-between py-1">
-              <span className="texto-suave">Ingresos registrados</span>
-              <strong>{reserva.ingresados ?? 0}/{reserva.personas}</strong>
-            </div>
-            {reserva.codigoVerificacion && (
-              <div className="chip mt-2"><i className="bi bi-patch-check" />Check-in completo verificado</div>
-            )}
-            {reserva.asistentes?.length > 0 && (
-              <div className="mt-3">
-                <div className="texto-tenue small mb-1">Personas que ingresaron:</div>
-                {reserva.asistentes.map((a, i) => (
-                  <div key={i} className="d-flex justify-content-between small py-1 border-top" style={{ borderColor: 'var(--borde)' }}>
-                    <span>{a.nombre}</span><span className="mono texto-tenue">CC {a.cedula}</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
       </div>
