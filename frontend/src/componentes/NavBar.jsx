@@ -82,7 +82,7 @@ export default function NavBar() {
           )}
         </form>
 
-        <div className="d-flex align-items-center gap-2 ms-md-2 ms-auto">
+        <div className="d-flex align-items-center gap-2 ms-md-2 ms-auto flex-shrink-0">
           <button className="btn-fantasma" onClick={alternar} title="Cambiar tema" aria-label="Cambiar tema">
             <i className={`bi ${tema === 'oscuro' ? 'bi-sun' : 'bi-moon-stars'}`} />
           </button>

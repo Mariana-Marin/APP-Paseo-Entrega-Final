@@ -192,6 +192,54 @@ public class ReservaServicio {
         return repositorioReserva.guardar(r);
     }
 
+    /**
+     * Resumen del día para TODAS las zonas en UNA sola pasada (rápido): carga las
+     * reservas y los espacios una vez y calcula, por espacio, las franjas ocupadas
+     * y cuántas personas hay. Pensado para el asistente de IA, que así responde
+     * "qué está ocupado hoy" sin hacer una consulta por cada espacio.
+     */
+    public List<java.util.Map<String, Object>> resumenDelDia(String fecha) {
+        LocalDate dia = parsearDia(fecha);
+        List<Espacio> espacios = repositorioEspacio.listar();
+        List<Reserva> todas = repositorioReserva.listar();
+
+        List<java.util.Map<String, Object>> salida = new ArrayList<>();
+        for (Espacio e : espacios) {
+            int apertura = e.getHoraApertura() == null ? 6 : e.getHoraApertura();
+            int cierre = e.getHoraCierre() == null ? 22 : e.getHoraCierre();
+            boolean compartible = e.getCompartible() != null && e.getCompartible();
+            int aforo = e.getAforo() == null ? Integer.MAX_VALUE : e.getAforo();
+            int[] personasPorHora = new int[24];
+            List<String> franjas = new ArrayList<>();
+
+            for (Reserva r : todas) {
+                if (!e.getId().equals(r.getEspacioId()) || esCancelada(r) || r.getFecha() == null) continue;
+                LocalDateTime ini = parsearFechaSilencioso(r.getFecha());
+                if (ini == null || !ini.toLocalDate().equals(dia)) continue;
+                int h0 = ini.getHour();
+                int h1 = h0 + (r.getTiempo() == null ? 1 : r.getTiempo());
+                franjas.add(String.format("%02d:00-%02d:00", h0, h1));
+                for (int h = h0; h < h1 && h < 24; h++) personasPorHora[h] += (r.getPersonas() == null ? 1 : r.getPersonas());
+            }
+
+            List<Integer> horasLibres = new ArrayList<>();
+            for (int h = apertura; h < cierre; h++) {
+                boolean libre = compartible ? personasPorHora[h] < aforo : personasPorHora[h] == 0;
+                if (libre) horasLibres.add(h);
+            }
+
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("espacio", e.getNombre());
+            m.put("categoria", e.getCategoria());
+            m.put("compartible", compartible);
+            m.put("estado", franjas.isEmpty() ? "libre todo el día" : "con reservas");
+            m.put("franjasOcupadas", franjas);
+            m.put("horasLibres", horasLibres);
+            salida.add(m);
+        }
+        return salida;
+    }
+
     /** Calcula franjas ocupadas y horas libres de un espacio en un día dado. */
     public DisponibilidadSalida disponibilidad(String espacioId, String fecha) {
         Espacio espacio = repositorioEspacio.buscarPorId(espacioId)

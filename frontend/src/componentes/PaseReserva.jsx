@@ -118,7 +118,7 @@ export default function PaseReserva({ reserva, alCerrar }) {
             <div className="d-flex justify-content-between"><span className="texto-suave">Personas</span><strong>{reserva.personas}</strong></div>
           </div>
           <button className="btn-marca w-100 mt-3" onClick={descargar}>
-            <i className="bi bi-download me-2" />Descargar QR (PNG)
+            <i className="bi bi-download me-2" />Descargar QR
           </button>
           <button className="btn-contorno w-100 mt-2" onClick={alCerrar}>Cerrar</button>
         </div>

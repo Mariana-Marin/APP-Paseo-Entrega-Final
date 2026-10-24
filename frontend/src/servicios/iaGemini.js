@@ -16,6 +16,14 @@ import { firebaseApp, firebaseConfigurado, asegurarAppCheck } from './firebase.j
 
 const MODELO = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.8-flash'
 
+// Los modelos Gemini 3 (como gemini-3.8-flash) traen "thinking" activado por
+// defecto, lo que añade decenas de segundos de latencia. Para un conserje que
+// debe responder rápido, bajamos el nivel de pensamiento al mínimo.
+// Gemini 3 usa 'thinkingLevel' ('low' | 'high'); 'thinkingBudget' se ignora.
+const CONFIG_RAPIDA = {
+  thinkingConfig: { thinkingLevel: 'low' },
+}
+
 let aiPromesa = null
 
 export function iaDisponible() {
@@ -41,9 +49,14 @@ async function obtenerSdk() {
 
 const INSTRUCCION_FRAN = `Eres "Fran", el conserje virtual de la unidad residencial Paseo de San Francisco (Sabaneta, Antioquia).
 Ayudas a los residentes a conocer y reservar las zonas comunes (piscina, salón social, gimnasio, zona BBQ, cancha, coworking).
-Hablas español, eres cálido, breve y resolutivo. Usa las herramientas disponibles para dar datos reales (no inventes espacios ni horarios).
-Cuando el residente quiera reservar, reúne espacio, fecha, hora, duración y número de personas; luego usa la herramienta de borrador de reserva.
-Nunca inventes códigos de acceso ni confirmes reservas: eso lo hace el sistema cuando el residente pulsa confirmar.`
+Hablas español, eres cálido, breve y resolutivo.
+Reglas de uso de herramientas (importante para ser rápido):
+- Si preguntan qué zonas están ocupadas o libres hoy o en un día, usa SIEMPRE "resumenDelDia" (una sola llamada). NO llames a "consultarDisponibilidad" espacio por espacio.
+- Usa "consultarDisponibilidad" solo cuando preguntan por UN espacio específico.
+- Usa "listarEspacios" solo si necesitas la lista o detalles de los espacios.
+- Cuando el residente quiera reservar, reúne espacio, fecha, hora, duración y personas; luego usa "prepararReserva".
+- Si una pregunta no necesita datos del sistema, responde directamente sin llamar herramientas.
+No inventes espacios, horarios ni códigos; las confirmaciones las hace el sistema cuando el residente pulsa confirmar.`
 
 /**
  * Crea un chat de Gemini con herramientas (function calling). Las funciones
@@ -64,12 +77,22 @@ export async function crearChatConHerramientas(ejecutores) {
         },
         {
           name: 'consultarDisponibilidad',
-          description: 'Consulta las horas libres y ocupadas de un espacio en una fecha concreta.',
+          description: 'Consulta las horas libres y ocupadas de UN espacio en una fecha concreta.',
           parameters: Schema.object({
             properties: {
               espacioId: Schema.string({ description: 'Id del espacio' }),
               fecha: Schema.string({ description: 'Fecha en formato YYYY-MM-DD' }),
             },
+          }),
+        },
+        {
+          name: 'resumenDelDia',
+          description: 'Devuelve en UNA sola llamada el estado (libre/ocupado y horas) de TODAS las zonas comunes en una fecha. Úsala cuando pregunten qué espacios están ocupados o libres hoy o en un día.',
+          parameters: Schema.object({
+            properties: {
+              fecha: Schema.string({ description: 'Fecha en formato YYYY-MM-DD (si no la dan, usa hoy)' }),
+            },
+            optionalProperties: ['fecha'],
           }),
         },
         {
@@ -92,15 +115,20 @@ export async function crearChatConHerramientas(ejecutores) {
     model: MODELO,
     systemInstruction: INSTRUCCION_FRAN,
     tools: herramientas,
+    generationConfig: { ...CONFIG_RAPIDA },
   })
 
   const chat = model.startChat()
 
+  const textoSeguro = (resp) => {
+    try { return resp.text() } catch { return '' }
+  }
+
   // Envía un mensaje y resuelve las llamadas a función hasta obtener texto final.
+  // Limita a 3 rondas de herramientas para no quedarse "pensando" indefinidamente.
   async function enviar(mensaje) {
     let resultado = await chat.sendMessage(mensaje)
-    // Puede encadenar varias herramientas.
-    for (let vuelta = 0; vuelta < 5; vuelta++) {
+    for (let vuelta = 0; vuelta < 3; vuelta++) {
       const llamadas = resultado.response.functionCalls?.() ?? []
       if (!llamadas.length) break
       const respuestas = []
@@ -116,7 +144,18 @@ export async function crearChatConHerramientas(ejecutores) {
       }
       resultado = await chat.sendMessage(respuestas)
     }
-    return resultado.response.text()
+
+    let texto = textoSeguro(resultado.response)
+    // Si tras las herramientas el modelo no entregó texto, pídele que responda en palabras.
+    if (!texto && (resultado.response.functionCalls?.()?.length ?? 0) > 0) {
+      try {
+        const cierre = await chat.sendMessage(
+          'Responde ahora al residente en español, de forma breve y clara, con la información que ya obtuviste. No llames más herramientas.',
+        )
+        texto = textoSeguro(cierre.response)
+      } catch { /* ignore */ }
+    }
+    return texto || 'No pude completar la consulta en este momento. ¿Puedes reformular tu pregunta?'
   }
 
   return { enviar }
@@ -127,7 +166,7 @@ export async function generarDescripcionEspacio({ nombre, categoria, aforo }) {
   const info = await obtenerSdk()
   if (!info) return null
   const { sdk, ai } = info
-  const model = sdk.getGenerativeModel(ai, { model: MODELO })
+  const model = sdk.getGenerativeModel(ai, { model: MODELO, generationConfig: { ...CONFIG_RAPIDA } })
   const prompt = `Escribe una descripción breve (máximo 2 frases, en español, tono cálido y residencial)
 para la zona común "${nombre}" (categoría: ${categoria || 'general'}, aforo: ${aforo || 'n/d'} personas)
 de la unidad Paseo de San Francisco. No uses comillas ni emojis.`
@@ -159,7 +198,7 @@ export async function interpretarReservaLibre(frase, espacios) {
 
   const model = getGenerativeModel(ai, {
     model: MODELO,
-    generationConfig: { responseMimeType: 'application/json', responseSchema: esquema },
+    generationConfig: { responseMimeType: 'application/json', responseSchema: esquema, ...CONFIG_RAPIDA },
   })
 
   const hoy = new Date().toISOString().slice(0, 10)

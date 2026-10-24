@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { iaDisponible, crearChatConHerramientas } from '../servicios/iaGemini.js'
 import { listarEspacios, obtenerDisponibilidad } from '../servicios/servicioEspacios.js'
+import { obtenerResumenDia } from '../servicios/servicioReservas.js'
 
 const SUGERENCIAS = [
   '¿Qué espacios hay?',
@@ -40,6 +41,12 @@ export default function AsistenteFran() {
       }))
     },
     consultarDisponibilidad: async ({ espacioId, fecha }) => obtenerDisponibilidad(espacioId, fecha),
+    // Estado de TODAS las zonas en un día en UNA sola consulta al backend (rápido).
+    resumenDelDia: async ({ fecha } = {}) => {
+      const dia = fecha || new Date().toISOString().slice(0, 10)
+      const zonas = await obtenerResumenDia(dia)
+      return { fecha: dia, zonas }
+    },
     prepararReserva: async ({ espacioId, fecha, tiempo, personas }) => {
       // No crea nada: prepara el formulario para que el residente confirme.
       const query = new URLSearchParams({ espacio: espacioId })

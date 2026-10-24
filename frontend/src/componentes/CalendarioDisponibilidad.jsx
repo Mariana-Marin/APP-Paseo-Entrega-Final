@@ -29,10 +29,13 @@ export default function CalendarioDisponibilidad({ espacioId, fecha, duracion, h
 
   return (
     <div>
-      <div className="d-flex justify-content-between align-items-center mb-2">
+      <div className="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
         <span className="texto-suave small">Franjas del {fecha}</span>
-        <span className="texto-tenue small"><i className="bi bi-circle-fill text-success me-1" style={{ fontSize: '.5rem' }} />libre
-          <i className="bi bi-circle-fill text-danger ms-3 me-1" style={{ fontSize: '.5rem' }} />ocupada</span>
+        <span className="texto-tenue small d-inline-flex align-items-center gap-1">
+          <span className="leyenda-muestra leyenda-libre" />libre
+          <span className="leyenda-muestra leyenda-ocupada ms-2" />ocupada
+          <span className="leyenda-muestra leyenda-elegida ms-2" />elegida
+        </span>
       </div>
       <div className="franja-grid">
         {horas.map((h) => {

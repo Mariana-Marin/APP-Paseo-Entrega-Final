@@ -30,6 +30,12 @@ public class ReservaControlador {
         return servicio.listar(espacioId, usuarioId);
     }
 
+    /** Resumen de ocupación de TODAS las zonas en un día (una sola consulta). */
+    @GetMapping("/resumen")
+    public List<java.util.Map<String, Object>> resumen(@RequestParam(required = false) String fecha) {
+        return servicio.resumenDelDia(fecha);
+    }
+
     @GetMapping("/{id}")
     public Reserva obtener(@PathVariable String id) {
         return servicio.buscarPorId(id);

@@ -117,6 +117,7 @@ a:hover { color: var(--marca-500); }
   font-weight: 600;
   border-radius: 999px;
   padding: .62rem 1.25rem;
+  white-space: nowrap;
   box-shadow: 0 8px 20px -8px rgba(16, 185, 129, .7);
   transition: transform var(--transicion), box-shadow var(--transicion), filter var(--transicion);
 }
@@ -137,6 +138,7 @@ a:hover { color: var(--marca-500); }
   border: 1.5px solid var(--borde-fuerte);
   color: var(--texto);
   font-weight: 600; border-radius: 999px; padding: .58rem 1.2rem;
+  white-space: nowrap;
   transition: all var(--transicion);
 }
 .btn-contorno:hover { border-color: var(--marca-500); color: var(--marca-600); background: color-mix(in srgb, var(--marca-500) 8%, transparent); }

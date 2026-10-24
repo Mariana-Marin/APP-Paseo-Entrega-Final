@@ -49,3 +49,9 @@ export async function verificarReserva(codigo) {
   const { data } = await clienteApi.get(`${RUTA}/verificar/${codigo}`)
   return data
 }
+
+/** Resumen de ocupación de todas las zonas en un día (una sola consulta). */
+export async function obtenerResumenDia(fecha) {
+  const { data } = await clienteApi.get(`${RUTA}/resumen`, { params: { fecha } })
+  return data
+}

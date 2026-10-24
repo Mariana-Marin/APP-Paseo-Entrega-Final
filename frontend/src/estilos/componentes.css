@@ -132,6 +132,20 @@ html[data-tema='oscuro'] .hero-media::after {
 .espacio-foto .cinta {
   position: absolute; top: .8rem; left: .8rem; display: flex; gap: .4rem; flex-wrap: wrap;
 }
+/* Las etiquetas van sobre la foto: fondo oscuro sólido y texto claro para que
+   sean legibles sobre cualquier imagen (compartido, aire libre, categoría). */
+.espacio-foto .cinta .chip,
+.espacio-foto .cinta .chip-oro {
+  background: rgba(6, 40, 29, .82);
+  color: #fff;
+  border-color: rgba(255, 255, 255, .25);
+  backdrop-filter: blur(4px);
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .3);
+}
+.espacio-foto .cinta .chip-oro { color: var(--oro-400); }
+.espacio-foto .cinta .chip i,
+.espacio-foto .cinta .chip-oro i { color: inherit; }
 .espacio-cuerpo { padding: 1.05rem 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .5rem; flex: 1; }
 .espacio-pie { margin-top: auto; display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
 
@@ -210,6 +224,12 @@ html[data-tema='oscuro'] .hero-media::after {
 .franja:hover:not(.ocupada) { border-color: var(--marca-500); color: var(--marca-600); }
 .franja.ocupada { background: repeating-linear-gradient(45deg, var(--superficie-2), var(--superficie-2) 6px, var(--borde) 6px, var(--borde) 12px); color: var(--texto-tenue); cursor: not-allowed; }
 .franja.elegida { background: linear-gradient(135deg, var(--marca-500), var(--marca-700)); color: #fff; border-color: transparent; }
+
+/* Muestras de la leyenda del calendario (coinciden con el estilo real de cada franja) */
+.leyenda-muestra { display: inline-block; width: 16px; height: 12px; border-radius: 4px; border: 1px solid var(--borde); vertical-align: middle; }
+.leyenda-libre { background: var(--superficie-2); border-color: var(--marca-500); }
+.leyenda-ocupada { background: repeating-linear-gradient(45deg, var(--superficie-2), var(--superficie-2) 4px, var(--borde) 4px, var(--borde) 8px); }
+.leyenda-elegida { background: linear-gradient(135deg, var(--marca-500), var(--marca-700)); border-color: transparent; }
 
 /* --------------------------- Paleta de comandos ------------------------- */
 .cmdk-fondo { position: fixed; inset: 0; z-index: 1060; background: rgba(6,40,29,.45); backdrop-filter: blur(4px); display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh; }
