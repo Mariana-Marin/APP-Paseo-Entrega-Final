@@ -14,14 +14,59 @@
 // ---------------------------------------------------------------------------
 import { firebaseApp, firebaseConfigurado, asegurarAppCheck } from './firebase.js'
 
+// Google solo habilita gemini-3.8-flash para proyectos nuevos (los 2.5 dan 404).
+// Ese modelo a veces responde 500 "alta demanda"; se maneja con reintentos
+// (ver pedirConReintentos). Configurable con VITE_GEMINI_MODEL.
 const MODELO = import.meta.env.VITE_GEMINI_MODEL ?? 'gemini-3.8-flash'
 
-// Los modelos Gemini 3 (como gemini-3.8-flash) traen "thinking" activado por
-// defecto, lo que añade decenas de segundos de latencia. Para un conserje que
-// debe responder rápido, bajamos el nivel de pensamiento al mínimo.
-// Gemini 3 usa 'thinkingLevel' ('low' | 'high'); 'thinkingBudget' se ignora.
+// Los modelos modernos de Gemini pueden traer "thinking" activado por defecto,
+// lo que añade latencia. Para un conserje que debe responder rápido, pedimos el
+// mínimo presupuesto de pensamiento (0 = desactivado, según el SDK JS).
 const CONFIG_RAPIDA = {
-  thinkingConfig: { thinkingLevel: 'low' },
+  thinkingConfig: { thinkingBudget: 0 },
+}
+
+const demora = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/** ¿El error del modelo es temporal (saturación) y conviene reintentar? */
+function esSobrecarga(e) {
+  const msg = (e?.message || '').toLowerCase()
+  return (
+    msg.includes('high demand') ||
+    msg.includes('overloaded') ||
+    msg.includes('503') ||
+    msg.includes('500') ||
+    msg.includes('unavailable') ||
+    msg.includes('try again')
+  )
+}
+
+/**
+ * Ejecuta una llamada al modelo reintentando cuando Google responde "alta
+ * demanda" (error 500/503 temporal). Hasta 6 intentos con espera creciente
+ * (~1.5 min en total) para sobrevivir picos de saturación del modelo.
+ */
+async function pedirConReintentos(accion) {
+  let ultimoError
+  const esperas = [1000, 2500, 5000, 8000, 12000] // ms entre intentos
+  for (let intento = 0; intento <= esperas.length; intento++) {
+    try {
+      return await accion()
+    } catch (e) {
+      ultimoError = e
+      if (!esSobrecarga(e) || intento === esperas.length) throw e
+      await demora(esperas[intento])
+    }
+  }
+  throw ultimoError
+}
+
+/** Mensaje amable cuando el modelo de Google está saturado. */
+export function mensajeSobrecarga(e) {
+  if (esSobrecarga(e)) {
+    return 'El asistente está con mucha demanda en este momento (del lado de Google). Vuelve a intentarlo en unos segundos.'
+  }
+  return null
 }
 
 let aiPromesa = null
@@ -124,10 +169,10 @@ export async function crearChatConHerramientas(ejecutores) {
     try { return resp.text() } catch { return '' }
   }
 
-  // Envía un mensaje y resuelve las llamadas a función hasta obtener texto final.
-  // Limita a 3 rondas de herramientas para no quedarse "pensando" indefinidamente.
+  // Envía un mensaje (con reintentos si el modelo está saturado) y resuelve las
+  // llamadas a función hasta obtener texto final. Limita a 3 rondas de herramientas.
   async function enviar(mensaje) {
-    let resultado = await chat.sendMessage(mensaje)
+    let resultado = await pedirConReintentos(() => chat.sendMessage(mensaje))
     for (let vuelta = 0; vuelta < 3; vuelta++) {
       const llamadas = resultado.response.functionCalls?.() ?? []
       if (!llamadas.length) break
@@ -142,16 +187,16 @@ export async function crearChatConHerramientas(ejecutores) {
         }
         respuestas.push({ functionResponse: { name: llamada.name, response: { resultado: salida } } })
       }
-      resultado = await chat.sendMessage(respuestas)
+      resultado = await pedirConReintentos(() => chat.sendMessage(respuestas))
     }
 
     let texto = textoSeguro(resultado.response)
     // Si tras las herramientas el modelo no entregó texto, pídele que responda en palabras.
     if (!texto && (resultado.response.functionCalls?.()?.length ?? 0) > 0) {
       try {
-        const cierre = await chat.sendMessage(
+        const cierre = await pedirConReintentos(() => chat.sendMessage(
           'Responde ahora al residente en español, de forma breve y clara, con la información que ya obtuviste. No llames más herramientas.',
-        )
+        ))
         texto = textoSeguro(cierre.response)
       } catch { /* ignore */ }
     }
@@ -170,7 +215,7 @@ export async function generarDescripcionEspacio({ nombre, categoria, aforo }) {
   const prompt = `Escribe una descripción breve (máximo 2 frases, en español, tono cálido y residencial)
 para la zona común "${nombre}" (categoría: ${categoria || 'general'}, aforo: ${aforo || 'n/d'} personas)
 de la unidad Paseo de San Francisco. No uses comillas ni emojis.`
-  const r = await model.generateContent(prompt)
+  const r = await pedirConReintentos(() => model.generateContent(prompt))
   return r.response.text().trim()
 }
 
@@ -205,7 +250,7 @@ export async function interpretarReservaLibre(frase, espacios) {
   const prompt = `Hoy es ${hoy}. Catálogo de espacios: ${catalogo}.
 Interpreta esta solicitud de reserva y devuelve el JSON pedido: "${frase}".
 Si no se menciona duración usa 2 horas; si no se mencionan personas usa 1.`
-  const r = await model.generateContent(prompt)
+  const r = await pedirConReintentos(() => model.generateContent(prompt))
   try {
     return JSON.parse(r.response.text())
   } catch {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
-import { iaDisponible, crearChatConHerramientas } from '../servicios/iaGemini.js'
+import { iaDisponible, crearChatConHerramientas, mensajeSobrecarga } from '../servicios/iaGemini.js'
 import { listarEspacios, obtenerDisponibilidad } from '../servicios/servicioEspacios.js'
 import { obtenerResumenDia } from '../servicios/servicioReservas.js'
 
@@ -74,7 +74,9 @@ export default function AsistenteFran() {
       const respuesta = await chat.enviar(pregunta)
       setMensajes((m) => [...m, { autor: 'ia', texto: respuesta || 'Listo.' }])
     } catch (e) {
-      setMensajes((m) => [...m, { autor: 'sistema', texto: 'Ups, no pude responder ahora. Revisa la configuración de Firebase/Gemini o intenta de nuevo.' }])
+      const texto = mensajeSobrecarga(e)
+        ?? 'Ups, no pude responder ahora. Revisa la configuración de Firebase/Gemini o intenta de nuevo.'
+      setMensajes((m) => [...m, { autor: 'sistema', texto }])
       console.warn(e)
     } finally {
       setPensando(false)
