@@ -5,11 +5,13 @@ import { toast } from 'sonner'
 import { iaDisponible, crearChatConHerramientas, mensajeSobrecarga } from '../servicios/iaGemini.js'
 import { listarEspacios, obtenerDisponibilidad } from '../servicios/servicioEspacios.js'
 import { obtenerResumenDia } from '../servicios/servicioReservas.js'
+import { responderRapido } from '../servicios/respuestasRapidas.js'
 
 const SUGERENCIAS = [
+  '¿Qué está libre hoy?',
   '¿Qué espacios hay?',
-  '¿Está libre la piscina el sábado?',
-  'Quiero reservar el salón social',
+  'Horarios de las zonas',
+  '¿Cómo reservo?',
 ]
 
 const BIENVENIDA = {
@@ -69,13 +71,34 @@ export default function AsistenteFran() {
     setTexto('')
     setPensando(true)
     try {
+      // 1) Respuestas rápidas con datos directos (sin IA). Funcionan siempre,
+      //    al instante, aunque Gemini esté saturado.
+      let rapida = null
+      try {
+        rapida = await responderRapido(pregunta)
+      } catch (e) {
+        console.warn('Respuesta rápida falló, se intentará con IA:', e)
+      }
+      if (rapida) {
+        setMensajes((m) => [...m, { autor: 'ia', texto: rapida }])
+        return
+      }
+
+      // 2) Si no hubo coincidencia, usar la IA (si está configurada).
+      if (!disponible) {
+        setMensajes((m) => [...m, {
+          autor: 'sistema',
+          texto: 'Puedo responder sobre espacios, disponibilidad de hoy, horarios y cómo reservar. Para consultas más libres se necesita la IA configurada.',
+        }])
+        return
+      }
       const chat = await asegurarChat()
       if (!chat) throw new Error('IA no disponible')
       const respuesta = await chat.enviar(pregunta)
       setMensajes((m) => [...m, { autor: 'ia', texto: respuesta || 'Listo.' }])
     } catch (e) {
       const texto = mensajeSobrecarga(e)
-        ?? 'Ups, no pude responder ahora. Revisa la configuración de Firebase/Gemini o intenta de nuevo.'
+        ?? 'Ups, no pude responder ahora. Intenta con otra pregunta o inténtalo de nuevo en unos segundos.'
       setMensajes((m) => [...m, { autor: 'sistema', texto }])
       console.warn(e)
     } finally {
@@ -96,15 +119,15 @@ export default function AsistenteFran() {
             <span className="marca-logo" style={{ background: 'rgba(255,255,255,.18)' }}><i className="bi bi-robot" /></span>
             <div>
               <strong className="d-block" style={{ lineHeight: 1 }}>Fran</strong>
-              <small style={{ opacity: .85 }}>{disponible ? 'Conserje con IA · en línea' : 'Asistente (IA sin configurar)'}</small>
+              <small style={{ opacity: .85 }}>{disponible ? 'Conserje con IA · en línea' : 'Conserje · respuestas rápidas'}</small>
             </div>
           </div>
 
           <div className="fran-cuerpo">
             {!disponible && (
               <div className="burbuja burbuja-sistema">
-                El asistente con IA necesita la configuración de Firebase (variables VITE_FIREBASE_*) y Gemini.
-                Cuando se configuren, Fran podrá responder y ayudarte a reservar.
+                Respondo al instante sobre espacios, disponibilidad de hoy, horarios y cómo reservar.
+                Para conversaciones más libres, configura la IA (Firebase + Gemini).
               </div>
             )}
             {mensajes.map((m, i) => (
@@ -119,7 +142,7 @@ export default function AsistenteFran() {
           </div>
 
           <div className="fran-pie">
-            {disponible && mensajes.length <= 1 && (
+            {mensajes.length <= 1 && (
               <div className="d-flex gap-2 mb-2" style={{ overflowX: 'auto' }}>
                 {SUGERENCIAS.map((s) => (
                   <button key={s} className="fran-sugerencia" onClick={() => enviar(s)}>{s}</button>
@@ -129,13 +152,12 @@ export default function AsistenteFran() {
             <div className="d-flex gap-2">
               <input
                 className="control"
-                placeholder={disponible ? 'Escribe tu mensaje…' : 'IA no configurada'}
+                placeholder="Escribe tu mensaje…"
                 value={texto}
-                disabled={!disponible}
                 onChange={(e) => setTexto(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && enviar()}
               />
-              <button className="btn-marca" onClick={() => enviar()} disabled={!disponible || pensando} aria-label="Enviar">
+              <button className="btn-marca" onClick={() => enviar()} disabled={pensando} aria-label="Enviar">
                 <i className="bi bi-send" />
               </button>
             </div>
